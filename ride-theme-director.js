@@ -1,362 +1,479 @@
-// Ride Theme Director v0.3
-// Minimal implementation of plugin described in README.
-// Provides several creative themes and applies them to rides.
-// Includes fixes for entrance/exit theming, recolouring and scenery toggle.
+/**
+ * Ride Theme Director
+ * v0.2
+ * Author: Steven
+ * Licence: MIT
+ * Target API: 80+
+ *
+ * Features
+ * - Pick a ride, pick a theme, apply only the parts you want
+ * - Options: name, colours, music, entrance and exit accents, scenery around the ride
+ * - Scenery placement uses radius, density and max pieces, and avoids paths or steep tiles if you want
+ * - Safe feature detection for entrance or exit styling and fallback accents
+ */
 
-(function() {
-    'use strict';
+(function () {
+  "use strict";
 
-    /**
-     * List of ride themes. Each theme contains name suggestions, colour schemes
-     * and optional music and scenery object references.
-     * Colour indices are palette numbers (0-31).
-     */
-    var THEMES = [
-        {
-            id: 'pirate',
-            label: 'Pirate Cove',
-            names: ['Blackfin\'s Revenge', 'Skull & Crossbones', 'Plunder Bay', 'Crimson Cutlass'],
-            colours: { trackMain: 24, trackAlt: 26, supports: 28, train1: 4, train2: 1 },
-            musicStyle: 11,
-            accentObjectIds: ['pirate_barrel', 'pirate_torch'],
-            sceneryObjectIds: ['pirate_flag', 'palm_tree', 'anchor']
-        },
-        {
-            id: 'western',
-            label: 'Frontier Western',
-            names: ['Coyote Ridge', 'Dust Devil', 'Thunder Mesa', 'Rattlesnake Run'],
-            colours: { trackMain: 6, trackAlt: 18, supports: 24, train1: 20, train2: 21 },
-            musicStyle: 10,
-            accentObjectIds: ['barrel', 'cactus'],
-            sceneryObjectIds: ['saguaro', 'dead_tree', 'wagon']
-        },
-        {
-            id: 'scifi',
-            label: 'Retro Sci-Fi',
-            names: ['Hyperflux', 'Ion Storm', 'Cosmo Blaster', 'Nebula Knight'],
-            colours: { trackMain: 1, trackAlt: 2, supports: 0, train1: 19, train2: 20 },
-            musicStyle: 6,
-            accentObjectIds: ['futuristic_lamp', 'radar_dish'],
-            sceneryObjectIds: ['antenna', 'satellite', 'laser_tower']
-        },
-        {
-            id: 'spooky',
-            label: 'Gothic Spooky',
-            names: ['Banshee\'s Lament', 'Nightshade Manor', 'Crypt Crawler', 'Specter Spiral'],
-            colours: { trackMain: 15, trackAlt: 16, supports: 0, train1: 13, train2: 14 },
-            musicStyle: 18,
-            accentObjectIds: ['spooky_lantern', 'gravestone'],
-            sceneryObjectIds: ['dead_tree', 'skull_pile', 'gargoyle']
-        },
-        {
-            id: 'jungle',
-            label: 'Tropical Jungle',
-            names: ['Rainforest Rush', 'Vine Vortex', 'Serpent Falls', 'Temple Trek'],
-            colours: { trackMain: 8, trackAlt: 9, supports: 11, train1: 10, train2: 12 },
-            musicStyle: 21,
-            accentObjectIds: ['jungle_torch', 'ruin_pillar'],
-            sceneryObjectIds: ['jungle_tree', 'idol', 'tiki_mask']
-        },
-        {
-            id: 'medieval',
-            label: 'Medieval Kingdom',
-            names: ['Dragon\'s Keep', 'King\'s Tourney', 'Lance & Lion', 'Castle Siege'],
-            colours: { trackMain: 3, trackAlt: 5, supports: 24, train1: 28, train2: 30 },
-            musicStyle: 7,
-            accentObjectIds: ['banner', 'torch'],
-            sceneryObjectIds: ['castle_wall', 'stone_tower', 'market_stall']
-        },
-        {
-            id: 'alpine',
-            label: 'Snowy Alpine',
-            names: ['Avalanche Run', 'Glacier Glider', 'Frostbite Flyer', 'Icecap Dash'],
-            colours: { trackMain: 27, trackAlt: 25, supports: 24, train1: 1, train2: 3 },
-            musicStyle: 23,
-            accentObjectIds: ['ski_sign', 'snowman'],
-            sceneryObjectIds: ['fir_tree', 'ice_rock', 'log_pile']
-        },
-        {
-            id: 'neon',
-            label: 'Neon Future',
-            names: ['Quantum Loop', 'Laserwave', 'Neon Nexus', 'Circuit Surge'],
-            colours: { trackMain: 2, trackAlt: 3, supports: 31, train1: 20, train2: 21 },
-            musicStyle: 3,
-            accentObjectIds: ['neon_sign', 'holo_panel'],
-            sceneryObjectIds: ['neon_post', 'holo_tree', 'data_tower']
-        }
-    ];
+  var META = {
+    name: "Ride Theme Director",
+    version: "0.2",
+    authors: ["Steven"],
+    type: "local",
+    targetApiVersion: 80
+  };
 
-    // Ride classifications that should not be themed
-    var NON_THEMEABLE_CLASSIFICATIONS = ['stall'];
-
-    // Window state used to keep checkbox values between refreshes
-    var state = {
-        rideId: null,
-        themeIndex: 0,
-        rename: true,
-        recolour: true,
-        music: true,
-        entrances: true,
-        scenery: false
-    };
-
-    /** Utility helpers **/
-    function getThemeableRides() {
-        var rides = context.getPark().rides;
-        var result = [];
-        for (var i = 0; i < rides.length; i++) {
-            var r = rides[i];
-            if (!r) continue;
-            if (NON_THEMEABLE_CLASSIFICATIONS.indexOf(r.classification) >= 0) continue;
-            result.push(r);
-        }
-        return result;
+  var THEMES = [
+    {
+      id: "pirate",
+      label: "Pirate Cove",
+      names: ["Blackfin’s Revenge","Skull & Thunder","Buccaneer’s Run","Tortuga Tumbler","Maelstrom Voyage","Galleon’s Fall"],
+      colours: { trackMain: 18, trackAlt: 19, supports: 26, train1: 6, train2: 24 },
+      musicStyle: 11,
+      accentObjectIds: ["scenery_small.torch_1","scenery_small.barrel_1"],
+      sceneryObjectIds: ["scenery_large.palm_1","scenery_large.palm_2","scenery_small.crate_1","scenery_small.anchor_1"]
+    },
+    {
+      id: "western",
+      label: "Frontier Western",
+      names: ["Dust Devil","Coyote Ridge","Prospector’s Plunge","Silver Spur","Canyon Rattler","Thunder Mesa"],
+      colours: { trackMain: 27, trackAlt: 28, supports: 15, train1: 24, train2: 14 },
+      musicStyle: 6,
+      accentObjectIds: ["scenery_small.cactus_1","scenery_small.barrel_1"],
+      sceneryObjectIds: ["scenery_large.dead_tree_1","scenery_small.cartwheel_1","scenery_small.water_trough_1"]
+    },
+    {
+      id: "sci",
+      label: "Retro Sci Fi",
+      names: ["Nebula Runner","Quantum Coil","Ion Storm","Hyperflux","Starlance","Event Horizon"],
+      colours: { trackMain: 1, trackAlt: 0, supports: 21, train1: 7, train2: 2 },
+      musicStyle: 15,
+      accentObjectIds: ["scenery_small.scifi_lamp_1","scenery_small.satellite_dish_1"],
+      sceneryObjectIds: ["scenery_large.radar_1","scenery_small.conduit_1","scenery_small.air_vent_1"]
+    },
+    {
+      id: "spooky",
+      label: "Gothic Spooky",
+      names: ["Nightshade Manor","Banshee’s Lament","Graveyard Shift","Phantom Ascent","Cryptkeeper","Midnight Wail"],
+      colours: { trackMain: 0, trackAlt: 22, supports: 16, train1: 22, train2: 0 },
+      musicStyle: 8,
+      accentObjectIds: ["scenery_small.gravestone_1","scenery_small.lantern_1"],
+      sceneryObjectIds: ["scenery_large.dead_tree_2","scenery_small.gargoyle_1","scenery_small.iron_fence_1"]
     }
+  ];
 
-    function getRideOptions() {
-        var list = getThemeableRides();
-        var options = [];
-        for (var i = 0; i < list.length; i++) {
-            options.push({ id: list[i].id, name: list[i].name });
-        }
-        return options;
+  var settings = {
+    selectedRideId: null,
+    themeIndex: 0,
+
+    applyName: true,
+    applyColours: true,
+    applyMusic: true,
+    applyEntranceExit: true,
+    applyScenery: false,
+
+    sceneryRadius: 5,
+    sceneryDensity: 45,
+    sceneryMax: 40,
+    sceneryAvoidPaths: true,
+    sceneryAvoidSlopes: true,
+    sceneryRotateRandomly: true
+  };
+
+  registerPlugin({
+    name: META.name,
+    version: META.version,
+    authors: META.authors,
+    type: META.type,
+    targetApiVersion: META.targetApiVersion,
+    licence: "MIT",
+    main: function () {
+      ui.registerMenuItem(META.name, openWindow);
     }
+  });
 
-    function pickRandom(arr) {
-        return arr[(Math.random() * arr.length) | 0];
-    }
+  function openWindow() {
+    var rides = getRideList();
+    var rideNames = rides.map(function (r) { return r.name; });
+    var themeNames = THEMES.map(function (t) { return t.label; });
 
-    function clampColour(index) {
-        if (index < 0) return 0;
-        if (index > 31) return 31;
-        return index | 0;
-    }
+    var w = ui.openWindow({
+      classification: "ride-theme-director",
+      title: META.name,
+      width: 380,
+      height: 290,
+      colours: [24, 24],
+      widgets: [
+        label(10, 20, "Step 1. Choose the ride"),
+        dropdown("rideDropdown", 160, 16, 210, rideNames.length ? rideNames : ["No rides found"], function (i) {
+          settings.selectedRideId = (rides[i] && rides[i].id) || null;
+        }),
 
-    /**
-     * Set ride colour scheme according to theme.
-     */
-    function applyColours(ride, theme) {
-        try {
-            if (!ride || !theme.colours) return;
-            var c = theme.colours;
-            ride.setColourScheme(0, clampColour(c.trackMain), clampColour(c.trackAlt), clampColour(c.supports));
-            if (ride.trainColours) {
-                ride.trainColours[0] = {
-                    body: clampColour(c.train1),
-                    trim: clampColour(c.train2)
-                };
-            }
-        } catch (e) {
-            // gracefully ignore if API not available
-        }
-    }
+        label(10, 40, "Step 2. Pick a theme"),
+        dropdown("themeDropdown", 160, 36, 210, themeNames, function (i) {
+          settings.themeIndex = i;
+          updatePreview();
+        }),
 
-    /**
-     * Apply entrance and exit theming. Falls back to placing accents if direct styling not available.
-     */
-    function themeEntrances(ride, theme) {
-        if (!ride) return;
-        try {
-            if (typeof ride.entranceStyle !== 'undefined' && theme.entranceStyle !== undefined) {
-                ride.entranceStyle = theme.entranceStyle;
-                if (typeof ride.exitStyle !== 'undefined') {
-                    ride.exitStyle = theme.entranceStyle;
-                }
-            } else {
-                placeAccentsNearEntrance(ride, theme);
-            }
-        } catch (e) {
-            placeAccentsNearEntrance(ride, theme);
-        }
-    }
+        checkbox("nameToggle", 10, 64, "Rename ride from theme list", settings.applyName, function (v) { settings.applyName = v; }),
+        checkbox("colourToggle", 190, 64, "Recolour track, supports and trains", settings.applyColours, function (v) { settings.applyColours = v; }),
+        checkbox("musicToggle", 10, 82, "Set matching music track", settings.applyMusic, function (v) { settings.applyMusic = v; }),
+        checkbox("entranceToggle", 190, 82, "Theme entrance and exit", settings.applyEntranceExit, function (v) { settings.applyEntranceExit = v; }),
+        checkbox("sceneryToggle", 10, 100, "Place scenery around the ride", settings.applyScenery, function (v) { settings.applyScenery = v; }),
 
-    // Places small scenery objects near entrance/exit tiles as accents
-    function placeAccentsNearEntrance(ride, theme) {
-        var entrances = ride.stations[0].entrances;
-        if (!entrances) return;
-        var accentIds = theme.accentObjectIds || [];
-        if (accentIds.length === 0) return;
-        var map = context.map;
-        for (var i = 0; i < entrances.length; i++) {
-            var tile = entrances[i];
-            for (var a = 0; a < accentIds.length; a++) {
-                try {
-                    map.placeObject('scenery_small', accentIds[a], tile.x, tile.y, tile.z);
-                } catch (e) {
-                    // ignore missing objects
-                }
-            }
-        }
-    }
+        label(10, 122, "Scenery options only used if enabled"),
+        label(10, 138, "Radius in tiles"),
+        spinner("radiusSpin", 120, 134, settings.sceneryRadius, function (v) { settings.sceneryRadius = clamp(v, 1, 12); }),
+        label(200, 138, "Density 0 to 100"),
+        spinner("densitySpin", 310, 134, settings.sceneryDensity, function (v) { settings.sceneryDensity = clamp(v, 0, 100); }),
+        label(10, 158, "Max pieces"),
+        spinner("maxSpin", 120, 154, settings.sceneryMax, function (v) { settings.sceneryMax = clamp(v, 0, 200); }),
 
-    /**
-     * Scatter scenery objects around the station and entrances.
-     */
-    function placeSceneryAroundRide(ride, theme) {
-        var objectIds = theme.sceneryObjectIds || [];
-        if (objectIds.length === 0) return;
-        var map = context.map;
-        var seeds = [];
-        // station tiles
-        for (var s = 0; s < ride.stations.length; s++) {
-            var station = ride.stations[s];
-            for (var t = 0; t < station.tiles.length; t++) {
-                seeds.push(station.tiles[t]);
-            }
-        }
-        // entrance/exit tiles
-        if (ride.entrances) {
-            for (var e = 0; e < ride.entrances.length; e++) {
-                seeds.push(ride.entrances[e]);
-            }
-        }
-        var radius = 4;
-        var maxPieces = 25;
-        var placed = 0;
-        for (var i = 0; i < seeds.length && placed < maxPieces; i++) {
-            var seed = seeds[i];
-            for (var dx = -radius; dx <= radius && placed < maxPieces; dx++) {
-                for (var dy = -radius; dy <= radius && placed < maxPieces; dy++) {
-                    if (Math.random() > 0.25) continue; // density
-                    var x = seed.x + dx;
-                    var y = seed.y + dy;
-                    try {
-                        var tile = map.getTile(x, y);
-                        if (!tile) continue;
-                        if (tile.elements.some(function(e) { return e.type === 'footpath'; })) continue;
-                        var obj = pickRandom(objectIds);
-                        map.placeObject('scenery_small', obj, x, y, tile.surfaceZ);
-                        placed++;
-                    } catch (e) {
-                        // ignore invalid tiles
-                    }
-                }
-            }
-        }
-    }
+        checkbox("avoidPath", 200, 154, "Avoid paths", settings.sceneryAvoidPaths, function (v) { settings.sceneryAvoidPaths = v; }),
+        checkbox("avoidSlope", 200, 172, "Avoid steep tiles", settings.sceneryAvoidSlopes, function (v) { settings.sceneryAvoidSlopes = v; }),
+        checkbox("rotateRand", 200, 190, "Rotate randomly", settings.sceneryRotateRandomly, function (v) { settings.sceneryRotateRandomly = v; }),
 
-    /** Apply theme to ride according to options */
-    function applyTheme(rideId, themeIndex) {
-        var rides = context.getPark().rides;
-        var ride = rides[rideId];
-        var theme = THEMES[themeIndex];
-        if (!ride || !theme) return;
-        if (state.rename) {
-            ride.name = pickRandom(theme.names);
-        }
-        if (state.recolour) {
-            applyColours(ride, theme);
-        }
-        if (state.music && theme.musicStyle !== undefined) {
-            try {
-                if (typeof ride.musicType !== 'undefined') {
-                    ride.musicType = theme.musicStyle;
-                    ride.isMusicOn = true;
-                } else if (typeof ride.music_style !== 'undefined') {
-                    ride.music_style = theme.musicStyle;
-                    ride.isMusicOn = true;
-                }
-            } catch (e) {
-                // ignore
-            }
-        }
-        if (state.entrances) {
-            themeEntrances(ride, theme);
-        }
-        if (state.scenery) {
-            placeSceneryAroundRide(ride, theme);
-        }
-    }
+        button("suggestName", 10, 214, 170, 16, "Suggest on-theme name", suggestName),
+        button("applyBtn", 200, 214, 170, 16, "Apply selected options", applyToRide),
 
-    /** Build list of dropdown items for rides and themes */
-    function createRideDropdownItems() {
-        var options = getRideOptions();
-        var items = [];
-        for (var i = 0; i < options.length; i++) {
-            items.push(options[i].name);
-        }
-        return items;
-    }
+        labelBlock("desc", 10, 236, 360, 34, [
+          "This tool does nothing until you choose a ride.",
+          "Tick only the parts you want. Scenery uses objects already in your park."
+        ].join("\\n")),
 
-    function createThemeDropdownItems() {
-        var items = [];
-        for (var i = 0; i < THEMES.length; i++) {
-            items.push(THEMES[i].label);
-        }
-        return items;
-    }
-
-    /** Main UI window creation */
-    function openWindow() {
-        var rideItems = createRideDropdownItems();
-        var themeItems = createThemeDropdownItems();
-        var window = ui.openWindow({
-            classification: 'rtd_window',
-            title: 'Ride Theme Director',
-            width: 300,
-            height: 180,
-            widgets: [
-                {
-                    type: 'dropdown',
-                    name: 'rideDropdown',
-                    x: 10, y: 20, width: 280, height: 14,
-                    items: rideItems,
-                    selectedIndex: 0,
-                    onChange: function(e) {
-                        state.rideId = getThemeableRides()[e].id;
-                    }
-                },
-                {
-                    type: 'dropdown',
-                    name: 'themeDropdown',
-                    x: 10, y: 40, width: 280, height: 14,
-                    items: themeItems,
-                    selectedIndex: state.themeIndex,
-                    onChange: function(e) { state.themeIndex = e; }
-                },
-                { type: 'checkbox', name: 'rename', x: 10, y: 60, width: 280, height: 14, text: 'Rename ride', isChecked: state.rename, onChange: function(e){ state.rename = e; }},
-                { type: 'checkbox', name: 'recolour', x: 10, y: 75, width: 280, height: 14, text: 'Recolour ride', isChecked: state.recolour, onChange: function(e){ state.recolour = e; }},
-                { type: 'checkbox', name: 'music', x: 10, y: 90, width: 280, height: 14, text: 'Set music', isChecked: state.music, onChange: function(e){ state.music = e; }},
-                { type: 'checkbox', name: 'entrances', x: 10, y:105, width: 280, height: 14, text: 'Theme entrance & exit', isChecked: state.entrances, onChange: function(e){ state.entrances = e; }},
-                { type: 'checkbox', name: 'scenery', x: 10, y:120, width: 280, height: 14, text: 'Place scenery around ride', isChecked: state.scenery, onChange: function(e){ state.scenery = e; }},
-                {
-                    type: 'button',
-                    name: 'apply',
-                    x: 10, y: 140, width: 130, height: 20,
-                    text: 'Apply selected options',
-                    onClick: function() {
-                        if (state.rideId === null) {
-                            var rides = getThemeableRides();
-                            if (rides.length > 0) {
-                                state.rideId = rides[0].id;
-                            }
-                        }
-                        applyTheme(state.rideId, state.themeIndex);
-                    }
-                },
-                {
-                    type: 'button',
-                    name: 'close',
-                    x: 160, y: 140, width: 130, height: 20,
-                    text: 'Close',
-                    onClick: function() { window.close(); }
-                }
-            ]
-        });
-    }
-
-    function main() {
-        if (typeof ui !== 'undefined') {
-            openWindow();
-        }
-    }
-
-    registerPlugin({
-        name: 'Ride Theme Director',
-        version: '0.3',
-        authors: ['Steven', 'ChatGPT'],
-        type: 'remote',
-        licence: 'MIT',
-        main: main
+        button("closeBtn", 10, 272, 360, 16, "Close", function () { var win = ui.getWindow("ride-theme-director"); if (win) win.close(); })
+      ],
+      onClose: function () { }
     });
+
+    if (rides.length) settings.selectedRideId = rides[0].id;
+    updatePreview();
+  }
+
+  function updatePreview() {
+    // Reserved for future visual preview
+  }
+
+  function applyToRide() {
+    var ride = getRideById(settings.selectedRideId);
+    if (!ride) {
+      ui.showError("No ride selected", "Choose a ride first.");
+      return;
+    }
+    var theme = THEMES[settings.themeIndex];
+
+    try {
+      if (settings.applyName) safeSetRideName(ride, pick(theme.names));
+      if (settings.applyColours) safeSetRideColours(ride, theme.colours);
+      if (settings.applyMusic && theme.musicStyle !== undefined) safeSetRideMusic(ride, theme.musicStyle);
+      if (settings.applyEntranceExit) themeEntranceAndExit(ride, theme);
+      if (settings.applyScenery) placeSceneryAroundRide(ride, theme);
+    } catch (e) { }
+
+    ui.showQuery("Done", "Applied " + theme.label + " to " + ride.name + ".", ["OK"]);
+  }
+
+  function placeSceneryAroundRide(ride, theme) {
+    if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) return;
+    var available = theme.sceneryObjectIds.filter(objectExists);
+    if (!available.length) return;
+
+    var stations = findStationTiles(ride.id);
+    var entries = findRideEndpoints(ride.id);
+    var seeds = stations.concat(entries);
+    if (!seeds.length) return;
+
+    var placed = 0;
+    var tried = Object.create(null);
+
+    for (var s = 0; s < seeds.length; s++) {
+      var seed = seeds[s];
+      forEachTileInRadius(seed.x, seed.y, settings.sceneryRadius, function (x, y) {
+        if (placed >= settings.sceneryMax) return;
+        var key = x + "," + y;
+        if (tried[key]) return;
+        tried[key] = 1;
+        if (random100() > settings.sceneryDensity) return;
+        if (!isTileGoodForScenery(x, y)) return;
+
+        var obj = pick(available);
+        var z = surfaceZ(x, y);
+        var rotation = settings.sceneryRotateRandomly ? randomInt(0, 3) : 0;
+        try {
+          map.placeObject(obj, x, y, z, { rotation: rotation });
+          placed++;
+        } catch (e) { }
+      });
+      if (placed >= settings.sceneryMax) break;
+    }
+  }
+
+  function isTileGoodForScenery(x, y) {
+    try {
+      var tile = map.getTile(x, y);
+      var surface = null;
+      for (var i = 0; i < tile.elements.length; i++) {
+        var el = tile.elements[i];
+        if (el.type === "surface") { surface = el; break; }
+      }
+      if (!surface) return false;
+
+      if (surface.hasOwnership && surface.waterHeight > 0) return false;
+
+      if (settings.sceneryAvoidSlopes) {
+        var slopeStr = String(surface.slope);
+        if (slopeStr.indexOf("slope") >= 0 || slopeStr.indexOf("corner") >= 0 || slopeStr.indexOf("steep") >= 0) return false;
+      }
+
+      if (settings.sceneryAvoidPaths) {
+        for (var j = 0; j < tile.elements.length; j++) {
+          if (tile.elements[j].type === "footpath") return false;
+        }
+      }
+
+      var sceneryCount = 0;
+      for (var k = 0; k < tile.elements.length; k++) {
+        var t = String(tile.elements[k].type || "");
+        if (t.indexOf("scenery") >= 0) sceneryCount++;
+      }
+      if (sceneryCount >= 2) return false;
+
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function themeEntranceAndExit(ride, theme) {
+    var endpoints = findRideEndpoints(ride.id);
+    if (!endpoints.length) return;
+
+    var restyled = false;
+    for (var i = 0; i < endpoints.length; i++) {
+      try {
+        var ep = endpoints[i];
+        var tile = map.getTile(ep.x, ep.y);
+        for (var j = 0; j < tile.elements.length; j++) {
+          var el = tile.elements[j];
+          if (el.type === "rideEntrance" || el.type === "rideExit") {
+            if (el.entranceType !== undefined) {
+              el.entranceType = guessEntranceTypeForTheme(theme.id);
+              restyled = true;
+            } else if (typeof el.setObject === "function") {
+              el.setObject(guessEntranceObjectForTheme(theme.id));
+              restyled = true;
+            }
+          }
+        }
+      } catch (e) { }
+    }
+    if (restyled) return;
+
+    var accents = (theme.accentObjectIds || []).filter(objectExists);
+    if (!accents.length) return;
+
+    for (var a = 0; a < endpoints.length; a++) {
+      var neighbour = getNeighbourTile(endpoints[a]);
+      if (!neighbour) continue;
+      try {
+        var obj = pick(accents);
+        var z = surfaceZ(neighbour.x, neighbour.y);
+        map.placeObject(obj, neighbour.x, neighbour.y, z);
+      } catch (e) { }
+    }
+  }
+
+  function getRideList() {
+    var list = [];
+    for (var i = 0; i < map.rides.length; i++) {
+      var r = map.rides[i];
+      list.push({ id: r.id, name: r.name });
+    }
+    list.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    return list;
+  }
+
+  function getRideById(id) {
+    if (id === null) return null;
+    try { return map.rides[id] || null; } catch (e) { return null; }
+  }
+
+  function findRideEndpoints(rideId) {
+    var out = [];
+    var sx = map.size.x, sy = map.size.y;
+    for (var x = 0; x < sx; x++) {
+      for (var y = 0; y < sy; y++) {
+        var tile = map.getTile(x, y);
+        for (var i = 0; i < tile.elements.length; i++) {
+          var el = tile.elements[i];
+          var t = el.type;
+          if ((t === "rideEntrance" || t === "rideExit") && el.ride === rideId) out.push({ x: x, y: y });
+        }
+      }
+    }
+    return out;
+  }
+
+  function findStationTiles(rideId) {
+    var out = [];
+    var sx = map.size.x, sy = map.size.y;
+    for (var x = 0; x < sx; x++) {
+      for (var y = 0; y < sy; y++) {
+        var tile = map.getTile(x, y);
+        for (var i = 0; i < tile.elements.length; i++) {
+          var el = tile.elements[i];
+          if (el.type === "track" && el.ride === rideId && el.isStation) out.push({ x: x, y: y });
+        }
+      }
+    }
+    return out;
+  }
+
+  function getNeighbourTile(p) {
+    var dirs = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+    shuffle(dirs);
+    for (var i = 0; i < dirs.length; i++) {
+      var nx = p.x + dirs[i].dx, ny = p.y + dirs[i].dy;
+      if (nx >= 0 && ny >= 0 && nx < map.size.x && ny < map.size.y) return { x: nx, y: ny };
+    }
+    return null;
+  }
+
+  function surfaceZ(x, y) {
+    try {
+      var tile = map.getTile(x, y);
+      for (var i = 0; i < tile.elements.length; i++) {
+        var el = tile.elements[i];
+        if (el.type === "surface") return el.baseZ || 0;
+      }
+      return 0;
+    } catch (e) { return 0; }
+  }
+
+  function forEachTileInRadius(cx, cy, radius, fn) {
+    var r2 = radius * radius;
+    var minX = clamp(cx - radius, 0, map.size.x - 1);
+    var maxX = clamp(cx + radius, 0, map.size.x - 1);
+    var minY = clamp(cy - radius, 0, map.size.y - 1);
+    var maxY = clamp(cy + radius, 0, map.size.y - 1);
+    for (var x = minX; x <= maxX; x++) {
+      for (var y = minY; y <= maxY; y++) {
+        var dx = x - cx, dy = y - cy;
+        if (dx * dx + dy * dy <= r2) fn(x, y);
+      }
+    }
+  }
+
+  function safeSetRideName(ride, name) {
+    try { ride.name = name; } catch (e) { }
+  }
+
+  function safeSetRideColours(ride, c) {
+    try {
+      var clampCol = function (n) { n = (n == null ? 0 : n); return clamp(n, 0, 31); };
+      if (ride.colourScheme !== undefined) {
+        var scheme = ride.colourScheme;
+        if (c.trackMain !== undefined) scheme.main = clampCol(c.trackMain);
+        if (c.trackAlt !== undefined) scheme.additional = clampCol(c.trackAlt);
+        if (c.supports !== undefined) scheme.supports = clampCol(c.supports);
+        if (c.train1 !== undefined) scheme.carBody = clampCol(c.train1);
+        if (c.train2 !== undefined) scheme.carTrim = clampCol(c.train2);
+      } else {
+        if (c.trackMain !== undefined) ride.colour1 = clampCol(c.trackMain);
+        if (c.trackAlt !== undefined) ride.colour2 = clampCol(c.trackAlt);
+        if (c.supports !== undefined) ride.colour3 = clampCol(c.supports);
+      }
+    } catch (e) { }
+  }
+
+  function safeSetRideMusic(ride, musicStyle) {
+    try {
+      ride.music = true;
+      if (ride.music_style !== undefined) ride.music_style = musicStyle;
+      else if (ride.musicType !== undefined) ride.musicType = musicStyle;
+    } catch (e) { }
+  }
+
+  function objectExists(objectName) {
+    try {
+      var parts = objectName.split(".");
+      var group = parts[0], id = parts[1];
+      if (!context.getObject) return true;
+      return context.getObject(group, id) != null;
+    } catch (e) { return false; }
+  }
+
+  function guessEntranceTypeForTheme(themeId) {
+    switch (themeId) {
+      case "pirate": return 2;
+      case "western": return 3;
+      case "sci": return 4;
+      case "spooky": return 5;
+      default: return 0;
+    }
+  }
+
+  function guessEntranceObjectForTheme(themeId) {
+    switch (themeId) {
+      case "pirate": return "ride_entrance.pirate_1";
+      case "western": return "ride_entrance.western_1";
+      case "sci": return "ride_entrance.scifi_1";
+      case "spooky": return "ride_entrance.spooky_1";
+      default: return "ride_entrance.standard_1";
+    }
+  }
+
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
+  function randomInt(min, max) { return (Math.random() * (max - min + 1) + min) | 0; }
+  function random100() { return (Math.random() * 100) | 0; }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = a[i]; a[i] = a[j]; a[j] = t; } }
+
+  // UI helpers
+  function label(x, y, text) { return { type: "label", x: x, y: y, width: 360, height: 14, text: text }; }
+  function labelBlock(name, x, y, w, h, text) { return { type: "label", name: name, x: x, y: y, width: w, height: h, text: text }; }
+  function dropdown(name, x, y, w, items, onChange) { return { type: "dropdown", name: name, x: x, y: y, width: w, height: 14, items: items, selectedIndex: 0, onChange: onChange }; }
+  function spinner(name, x, y, val, onChangeNum) {
+    return {
+      type: "spinner", name: name, x: x, y: y, width: 60, height: 14, text: String(val),
+      onIncrement: function () {
+        var win = ui.getWindow("ride-theme-director");
+        if (!win) return;
+        var sp = win.findWidget(name);
+        var v = parseInt(sp.text || "0", 10) + 1;
+        sp.text = String(v);
+        onChangeNum(v);
+      },
+      onDecrement: function () {
+        var win = ui.getWindow("ride-theme-director");
+        if (!win) return;
+        var sp = win.findWidget(name);
+        var v = parseInt(sp.text || "0", 10) - 1;
+        sp.text = String(v);
+        onChangeNum(v);
+      }
+    };
+  }
+  function checkbox(name, x, y, text, isChecked, onChangeBool) {
+    return {
+      type: "checkbox", name: name, x: x, y: y, width: 170, height: 14, text: text, isChecked: isChecked,
+      onChange: function () {
+        var win = ui.getWindow("ride-theme-director");
+        if (!win) return;
+        var w = win.findWidget(name);
+        w.isChecked = !w.isChecked;
+        onChangeBool(w.isChecked);
+      }
+    };
+  }
+  function button(name, x, y, w, h, text, onClick) { return { type: "button", name: name, x: x, y: y, width: w, height: h, text: text, onClick: onClick }; }
+
+  function suggestName() {
+    var theme = THEMES[settings.themeIndex];
+    var name = pick(theme.names);
+    ui.showTextInput({
+      title: "Suggested ride name",
+      description: "Click OK to copy this name. You can paste it into the ride window if you prefer.",
+      initialValue: name,
+      callback: function () { }
+    });
+  }
 })();
