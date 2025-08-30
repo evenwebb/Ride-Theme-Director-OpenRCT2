@@ -1,6 +1,6 @@
 /**
  * Ride Theme Director
- * v0.2
+ * v0.3
  * Author: Steven
  * Licence: MIT
  * Target API: 80+
@@ -17,7 +17,7 @@
 
   var META = {
     name: "Ride Theme Director",
-    version: "0.2",
+    version: "0.3",
     authors: ["Steven"],
     type: "local",
     targetApiVersion: 80
@@ -59,6 +59,60 @@
       musicStyle: 8,
       accentObjectIds: ["scenery_small.gravestone_1","scenery_small.lantern_1"],
       sceneryObjectIds: ["scenery_large.dead_tree_2","scenery_small.gargoyle_1","scenery_small.iron_fence_1"]
+    },
+    {
+      id: "castle",
+      label: "Royal Castle",
+      names: ["Dragon's Descent","Kingdom Siege","Knight's Charge","Royal Rampart","Lance & Lute","Trebuchet Twister"],
+      colours: { trackMain: 20, trackAlt: 4, supports: 9, train1: 2, train2: 25 },
+      musicStyle: 1,
+      accentObjectIds: ["scenery_small.banner_1","scenery_small.torch_2"],
+      sceneryObjectIds: ["scenery_large.castle_wall_1","scenery_small.flag_1","scenery_small.statue_knight_1"]
+    },
+    {
+      id: "jungle",
+      label: "Jungle Expedition",
+      names: ["Vine Vortex","Temple Swing","Rainforest Racer","Serpent's Spiral","Jaguar Leap","Foliage Fury"],
+      colours: { trackMain: 10, trackAlt: 11, supports: 6, train1: 24, train2: 9 },
+      musicStyle: 5,
+      accentObjectIds: ["scenery_small.tiki_torch_1","scenery_small.vine_1"],
+      sceneryObjectIds: ["scenery_large.tropical_tree_1","scenery_small.stone_head_1","scenery_small.boulder_1"]
+    },
+    {
+      id: "arctic",
+      label: "Arctic Expedition",
+      names: ["Frostbite Flyer","Glacier Glide","Polar Plunge","Ice Winder","Snowstorm Sprint","Aurora Ascent"],
+      colours: { trackMain: 1, trackAlt: 27, supports: 23, train1: 28, train2: 24 },
+      musicStyle: 9,
+      accentObjectIds: ["scenery_small.ice_crystal_1","scenery_small.snowman_1"],
+      sceneryObjectIds: ["scenery_large.snow_tree_1","scenery_small.ice_chunk_1","scenery_small.penguin_1"]
+    },
+    {
+      id: "candy",
+      label: "Candy Land",
+      names: ["Sugar Rush","Lollipop Loop","Gumdrop Glide","Toffee Twister","Chocolate Churn","Peppermint Plunge"],
+      colours: { trackMain: 21, trackAlt: 24, supports: 17, train1: 20, train2: 6 },
+      musicStyle: 13,
+      accentObjectIds: ["scenery_small.candy_cane_1","scenery_small.lollipop_1"],
+      sceneryObjectIds: ["scenery_large.gingerbread_house_1","scenery_small.cupcake_1","scenery_small.cookie_1"]
+    },
+    {
+      id: "egypt",
+      label: "Ancient Egypt",
+      names: ["Pharaoh's Fury","Sphinx Spin","Pyramid Plunge","Nile Navigator","Scarab Sprint","Obelisk Odyssey"],
+      colours: { trackMain: 14, trackAlt: 27, supports: 15, train1: 24, train2: 0 },
+      musicStyle: 3,
+      accentObjectIds: ["scenery_small.obelisk_1","scenery_small.torch_1"],
+      sceneryObjectIds: ["scenery_large.pyramid_piece_1","scenery_small.statue_jackal_1","scenery_small.urn_1"]
+    },
+    {
+      id: "steampunk",
+      label: "Clockwork Steampunk",
+      names: ["Gear Grinder","Steam Surge","Copper Coaster","Boiler Blast","Cog & Sprocket","Chrono Chariot"],
+      colours: { trackMain: 18, trackAlt: 19, supports: 25, train1: 22, train2: 10 },
+      musicStyle: 14,
+      accentObjectIds: ["scenery_small.pipe_1","scenery_small.smokestack_1"],
+      sceneryObjectIds: ["scenery_large.clocktower_1","scenery_small.gear_1","scenery_small.brass_boiler_1"]
     }
   ];
 
@@ -162,20 +216,28 @@
     }
     var theme = THEMES[settings.themeIndex];
 
-    try {
-      if (settings.applyName) safeSetRideName(ride, pick(theme.names));
-      if (settings.applyColours) safeSetRideColours(ride, theme.colours);
-      if (settings.applyMusic && theme.musicStyle !== undefined) safeSetRideMusic(ride, theme.musicStyle);
-      if (settings.applyEntranceExit) themeEntranceAndExit(ride, theme);
-      if (settings.applyScenery) placeSceneryAroundRide(ride, theme);
-    } catch (e) { }
+    if (settings.applyName) {
+      try { safeSetRideName(ride, pick(theme.names)); } catch (e) { }
+    }
+    if (settings.applyColours) {
+      try { safeSetRideColours(ride, theme.colours); } catch (e) { }
+    }
+    if (settings.applyMusic && theme.musicStyle !== undefined) {
+      try { safeSetRideMusic(ride, theme.musicStyle); } catch (e) { }
+    }
+    if (settings.applyEntranceExit) {
+      try { themeEntranceAndExit(ride, theme); } catch (e) { }
+    }
+    if (settings.applyScenery) {
+      try { placeSceneryAroundRide(ride, theme); } catch (e) { }
+    }
 
     ui.showQuery("Done", "Applied " + theme.label + " to " + ride.name + ".", ["OK"]);
   }
 
   function placeSceneryAroundRide(ride, theme) {
     if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) return;
-    var available = theme.sceneryObjectIds.filter(objectExists);
+    var available = theme.sceneryObjectIds.map(getObjectIndex).filter(function (id) { return id !== null; });
     if (!available.length) return;
 
     var stations = findStationTiles(ride.id);
@@ -254,11 +316,14 @@
         for (var j = 0; j < tile.elements.length; j++) {
           var el = tile.elements[j];
           if (el.type === "rideEntrance" || el.type === "rideExit") {
-            if (el.entranceType !== undefined) {
+            if (typeof el.setObject === "function") {
+              var objId = getObjectIndex(guessEntranceObjectForTheme(theme.id));
+              if (objId !== null) {
+                el.setObject(objId);
+                restyled = true;
+              }
+            } else if (el.entranceType !== undefined) {
               el.entranceType = guessEntranceTypeForTheme(theme.id);
-              restyled = true;
-            } else if (typeof el.setObject === "function") {
-              el.setObject(guessEntranceObjectForTheme(theme.id));
               restyled = true;
             }
           }
@@ -267,7 +332,7 @@
     }
     if (restyled) return;
 
-    var accents = (theme.accentObjectIds || []).filter(objectExists);
+    var accents = (theme.accentObjectIds || []).map(getObjectIndex).filter(function (id) { return id !== null; });
     if (!accents.length) return;
 
     for (var a = 0; a < endpoints.length; a++) {
@@ -285,6 +350,14 @@
     var list = [];
     for (var i = 0; i < map.rides.length; i++) {
       var r = map.rides[i];
+      try {
+        if (r.classification !== undefined) {
+          var c = r.classification;
+          if (c === "stall" || c === 1) continue;
+          if (c !== "ride" && c !== 0) continue;
+        }
+        if (r.shopItem !== undefined) continue;
+      } catch (e) { }
       list.push({ id: r.id, name: r.name });
     }
     list.sort(function (a, b) { return a.name.localeCompare(b.name); });
@@ -392,13 +465,18 @@
     } catch (e) { }
   }
 
-  function objectExists(objectName) {
+  function getObjectIndex(objectName) {
     try {
+      if (!context.getObject) return null;
       var parts = objectName.split(".");
       var group = parts[0], id = parts[1];
-      if (!context.getObject) return true;
-      return context.getObject(group, id) != null;
-    } catch (e) { return false; }
+      var obj = context.getObject(group, id);
+      return obj ? obj.index : null;
+    } catch (e) { return null; }
+  }
+
+  function objectExists(objectName) {
+    return getObjectIndex(objectName) !== null;
   }
 
   function guessEntranceTypeForTheme(themeId) {
@@ -407,6 +485,12 @@
       case "western": return 3;
       case "sci": return 4;
       case "spooky": return 5;
+      case "castle": return 6;
+      case "jungle": return 7;
+      case "arctic": return 8;
+      case "candy": return 9;
+      case "egypt": return 10;
+      case "steampunk": return 11;
       default: return 0;
     }
   }
@@ -417,6 +501,12 @@
       case "western": return "ride_entrance.western_1";
       case "sci": return "ride_entrance.scifi_1";
       case "spooky": return "ride_entrance.spooky_1";
+      case "castle": return "ride_entrance.castle_1";
+      case "jungle": return "ride_entrance.jungle_1";
+      case "arctic": return "ride_entrance.snow_1";
+      case "candy": return "ride_entrance.candy_1";
+      case "egypt": return "ride_entrance.egyptian_1";
+      case "steampunk": return "ride_entrance.steampunk_1";
       default: return "ride_entrance.standard_1";
     }
   }
@@ -459,7 +549,6 @@
         var win = ui.getWindow("ride-theme-director");
         if (!win) return;
         var w = win.findWidget(name);
-        w.isChecked = !w.isChecked;
         onChangeBool(w.isChecked);
       }
     };
