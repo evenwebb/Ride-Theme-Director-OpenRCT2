@@ -1,4 +1,4 @@
-# Ride Theme Director (v0.2)
+# Ride Theme Director (v0.3)
 
 Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you want, and Ride Theme Director will rename the ride, set matching music, recolour track/supports/trains, and (optionally) place tasteful scenery around the station and approaches. There’s also a light-touch entrance/exit “accent” pass that works even on builds where direct entrance styling isn’t exposed.
 
@@ -7,15 +7,16 @@ Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you w
 ## ✨ Highlights
 
 - **Does nothing until you choose a ride** — zero surprises.
-- **Theme picker** (Pirate Cove, Frontier Western, Retro Sci-Fi, Gothic Spooky).
+- **Theme picker** (Pirate Cove, Frontier Western, Retro Sci-Fi, Gothic Spooky, Royal Castle, Jungle Expedition, Arctic Expedition, Candy Land, Ancient Egypt, Clockwork Steampunk).
 - **Modular application** — enable/disable each piece:
   - On-theme **ride name**
   - **Colours** (track, supports, train body/trim)
   - **Music** (matching track, if available in your build)
-  - **Entrance/Exit accents** (feature-detected; safe fallback to place small scenery nearby)
-  - **Scenery around the ride** (radius/density/limit controls)
+- **Entrance/Exit accents** (feature-detected; safe fallback to place small scenery nearby)
+- **Scenery around the ride** (radius/density/limit controls)
 - **Safe by design** — feature-detects capabilities; falls back gracefully if your OpenRCT2 build lacks certain setters.
 - **Optimised placement** — avoids paths and steep slopes by default, with a hard cap to prevent clutter.
+- **Ride picker** ignores shops, toilets, kiosks and other facilities that can't be themed.
 
 ---
 
@@ -36,7 +37,7 @@ Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you w
 
 1. Open **Ride Theme Director** from the menu.
 2. **Step 1:** Choose a ride from the dropdown.
-3. **Step 2:** Pick a theme (Pirate, Western, Sci-Fi, Spooky).
+3. **Step 2:** Pick a theme (Pirate, Western, Sci-Fi, Spooky, Castle, Jungle, Arctic, Candy, Egypt, Steampunk).
 4. Tick the parts you want to apply:
    - Rename ride
    - Recolour track/supports/trains
@@ -70,16 +71,28 @@ You can also press **Suggest on-theme name** to copy a fresh name suggestion.
 
 ---
 
-## 🎨 Themes Included (v0.2)
+## 🎨 Themes Included (v0.3)
 
-- **Pirate Cove**  
+- **Pirate Cove**
   *Blackfin’s Revenge*, weathered timbers, pirate music, barrels, torches, palms
-- **Frontier Western**  
+- **Frontier Western**
   *Coyote Ridge*, desert tones, western music, cacti, barrels, dead trees
-- **Retro Sci-Fi**  
+- **Retro Sci-Fi**
   *Ion Storm*, metallic palette, sci-fi music, lamps, dishes, radar
-- **Gothic Spooky**  
+- **Gothic Spooky**
   *Nightshade Manor*, dark purples/greens, spooky music, gravestones, lanterns, dead trees
+- **Royal Castle**
+  *Dragon's Descent*, banners and braziers, regal reds and stone greys
+- **Jungle Expedition**
+  *Vine Vortex*, lush greens, tiki torches and tropical ruins
+- **Arctic Expedition**
+  *Frostbite Flyer*, icy blues, snowmen and crystal formations
+- **Candy Land**
+  *Sugar Rush*, pastel tracks, candy canes and gingerbread
+- **Ancient Egypt**
+  *Pharaoh's Fury*, warm sands, obelisks and jackal statues
+- **Clockwork Steampunk**
+  *Gear Grinder*, brass gears, pipes and steam vents
 
 > Scenery/entrance objects must already be loaded with your park’s object set. Missing objects are skipped automatically.
 
