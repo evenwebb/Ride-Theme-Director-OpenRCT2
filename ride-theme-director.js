@@ -216,20 +216,28 @@
     }
     var theme = THEMES[settings.themeIndex];
 
-    try {
-      if (settings.applyName) safeSetRideName(ride, pick(theme.names));
-      if (settings.applyColours) safeSetRideColours(ride, theme.colours);
-      if (settings.applyMusic && theme.musicStyle !== undefined) safeSetRideMusic(ride, theme.musicStyle);
-      if (settings.applyEntranceExit) themeEntranceAndExit(ride, theme);
-      if (settings.applyScenery) placeSceneryAroundRide(ride, theme);
-    } catch (e) { }
+    if (settings.applyName) {
+      try { safeSetRideName(ride, pick(theme.names)); } catch (e) { }
+    }
+    if (settings.applyColours) {
+      try { safeSetRideColours(ride, theme.colours); } catch (e) { }
+    }
+    if (settings.applyMusic && theme.musicStyle !== undefined) {
+      try { safeSetRideMusic(ride, theme.musicStyle); } catch (e) { }
+    }
+    if (settings.applyEntranceExit) {
+      try { themeEntranceAndExit(ride, theme); } catch (e) { }
+    }
+    if (settings.applyScenery) {
+      try { placeSceneryAroundRide(ride, theme); } catch (e) { }
+    }
 
     ui.showQuery("Done", "Applied " + theme.label + " to " + ride.name + ".", ["OK"]);
   }
 
   function placeSceneryAroundRide(ride, theme) {
     if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) return;
-    var available = theme.sceneryObjectIds.filter(objectExists);
+    var available = theme.sceneryObjectIds.map(getObjectIndex).filter(function (id) { return id !== null; });
     if (!available.length) return;
 
     var stations = findStationTiles(ride.id);
@@ -309,8 +317,11 @@
           var el = tile.elements[j];
           if (el.type === "rideEntrance" || el.type === "rideExit") {
             if (typeof el.setObject === "function") {
-              el.setObject(guessEntranceObjectForTheme(theme.id));
-              restyled = true;
+              var objId = getObjectIndex(guessEntranceObjectForTheme(theme.id));
+              if (objId !== null) {
+                el.setObject(objId);
+                restyled = true;
+              }
             } else if (el.entranceType !== undefined) {
               el.entranceType = guessEntranceTypeForTheme(theme.id);
               restyled = true;
@@ -321,7 +332,7 @@
     }
     if (restyled) return;
 
-    var accents = (theme.accentObjectIds || []).filter(objectExists);
+    var accents = (theme.accentObjectIds || []).map(getObjectIndex).filter(function (id) { return id !== null; });
     if (!accents.length) return;
 
     for (var a = 0; a < endpoints.length; a++) {
@@ -454,13 +465,18 @@
     } catch (e) { }
   }
 
-  function objectExists(objectName) {
+  function getObjectIndex(objectName) {
     try {
+      if (!context.getObject) return null;
       var parts = objectName.split(".");
       var group = parts[0], id = parts[1];
-      if (!context.getObject) return true;
-      return context.getObject(group, id) != null;
-    } catch (e) { return false; }
+      var obj = context.getObject(group, id);
+      return obj ? obj.index : null;
+    } catch (e) { return null; }
+  }
+
+  function objectExists(objectName) {
+    return getObjectIndex(objectName) !== null;
   }
 
   function guessEntranceTypeForTheme(themeId) {
