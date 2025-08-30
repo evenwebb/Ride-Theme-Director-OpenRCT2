@@ -1,12 +1,14 @@
-Ride Theme Director (v0.2)
+Ride Theme Director (v0.3)
 
 Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you want, and Ride Theme Director will rename the ride, set matching music, recolour track/supports/trains, and (optionally) place tasteful scenery around the station and approaches. There’s also a light-touch entrance/exit “accent” pass that works even on builds where direct entrance styling isn’t exposed.
 
 Highlights
 
 Does nothing until you choose a ride — zero surprises.
+Skips rides that cannot be themed (shops, toilets, information kiosks).
 
-Theme picker (Pirate Cove, Frontier Western, Retro Sci-Fi, Gothic Spooky).
+Theme picker (Pirate Cove, Frontier Western, Retro Sci-Fi, Gothic Spooky,
+Tropical Jungle, Medieval Kingdom, Snowy Alpine, Neon Future).
 
 Modular application — enable/disable each piece:
 
@@ -46,7 +48,7 @@ Open Ride Theme Director from the menu.
 
 Step 1: Choose a ride from the dropdown.
 
-Step 2: Pick a theme (Pirate, Western, Sci-Fi, Spooky).
+Step 2: Pick a theme (Pirate, Western, Sci-Fi, Spooky, Jungle, Medieval, Alpine, Neon).
 
 Tick the parts you want to apply:
 
@@ -98,7 +100,7 @@ Avoid steep tiles: Skips awkward slopes/corners.
 
 Rotate randomly: Adds variety to repeated pieces.
 
-Themes Included (v0.2)
+Themes Included (v0.3)
 
 Pirate Cove
 Names like Blackfin’s Revenge, palette of weathered timbers and rope; pirate music; barrels/torches/palms as accents.
@@ -111,6 +113,18 @@ Names like Ion Storm and Hyperflux; cool metallic palette; space-style music; la
 
 Gothic Spooky
 Names like Nightshade Manor and Banshee’s Lament; dark purples/greens; spooky music; gravestones, lanterns, dead trees.
+
+Tropical Jungle
+Vine Vortex and Temple Trek; lush greens and warm stone; jungle drums; torches, idols and palms.
+
+Medieval Kingdom
+Dragon’s Keep and Castle Siege; heraldic colours; lute music; banners, walls and towers.
+
+Snowy Alpine
+Avalanche Run and Frostbite Flyer; icy blues and rustic woods; festive tunes; fir trees and log piles.
+
+Neon Future
+Quantum Loop and Laserwave; vibrant neons on dark supports; synth music; holographic signs and panels.
 
 Scenery/entrance objects must already be loaded with your park’s object set. If a listed object isn’t available, the plugin quietly skips it.
 
