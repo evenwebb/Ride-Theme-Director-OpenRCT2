@@ -237,7 +237,7 @@
 
   function placeSceneryAroundRide(ride, theme) {
     if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) return;
-    var available = theme.sceneryObjectIds.map(getObjectIndex).filter(function (id) { return id !== null; });
+    var available = theme.sceneryObjectIds.map(getObject).filter(function (obj) { return obj !== null; });
     if (!available.length) return;
 
     var stations = findStationTiles(ride.id);
@@ -317,9 +317,9 @@
           var el = tile.elements[j];
           if (el.type === "rideEntrance" || el.type === "rideExit") {
             if (typeof el.setObject === "function") {
-              var objId = getObjectIndex(guessEntranceObjectForTheme(theme.id));
-              if (objId !== null) {
-                el.setObject(objId);
+              var obj = getObject(guessEntranceObjectForTheme(theme.id));
+              if (obj) {
+                el.setObject(obj.index);
                 restyled = true;
               }
             } else if (el.entranceType !== undefined) {
@@ -332,7 +332,7 @@
     }
     if (restyled) return;
 
-    var accents = (theme.accentObjectIds || []).map(getObjectIndex).filter(function (id) { return id !== null; });
+    var accents = (theme.accentObjectIds || []).map(getObject).filter(function (obj) { return obj !== null; });
     if (!accents.length) return;
 
     for (var a = 0; a < endpoints.length; a++) {
@@ -442,17 +442,21 @@
   function safeSetRideColours(ride, c) {
     try {
       var clampCol = function (n) { n = (n == null ? 0 : n); return clamp(n, 0, 31); };
-      if (ride.colourScheme !== undefined) {
-        var scheme = ride.colourScheme;
-        if (c.trackMain !== undefined) scheme.main = clampCol(c.trackMain);
-        if (c.trackAlt !== undefined) scheme.additional = clampCol(c.trackAlt);
-        if (c.supports !== undefined) scheme.supports = clampCol(c.supports);
-        if (c.train1 !== undefined) scheme.carBody = clampCol(c.train1);
-        if (c.train2 !== undefined) scheme.carTrim = clampCol(c.train2);
+      var trackMain = clampCol(c.trackMain);
+      var trackAlt = clampCol(c.trackAlt);
+      var supports = clampCol(c.supports);
+      if (typeof ride.setColourScheme === "function") {
+        ride.setColourScheme(0, trackMain, trackAlt, supports);
       } else {
-        if (c.trackMain !== undefined) ride.colour1 = clampCol(c.trackMain);
-        if (c.trackAlt !== undefined) ride.colour2 = clampCol(c.trackAlt);
-        if (c.supports !== undefined) ride.colour3 = clampCol(c.supports);
+        if (ride.trackColourMain !== undefined) ride.trackColourMain = trackMain;
+        if (ride.trackColourAdditional !== undefined) ride.trackColourAdditional = trackAlt;
+        if (ride.supportColour !== undefined) ride.supportColour = supports;
+      }
+
+      var body = clampCol(c.train1);
+      var trim = clampCol(c.train2);
+      if (typeof ride.setVehicleColours === "function") {
+        try { ride.setVehicleColours(0, body, trim); } catch (e) { }
       }
     } catch (e) { }
   }
@@ -460,23 +464,23 @@
   function safeSetRideMusic(ride, musicStyle) {
     try {
       ride.music = true;
-      if (ride.music_style !== undefined) ride.music_style = musicStyle;
+      if (ride.musicStyle !== undefined) ride.musicStyle = musicStyle;
       else if (ride.musicType !== undefined) ride.musicType = musicStyle;
+      else if (ride.music_style !== undefined) ride.music_style = musicStyle;
     } catch (e) { }
   }
 
-  function getObjectIndex(objectName) {
+  function getObject(objectName) {
     try {
       if (!context.getObject) return null;
       var parts = objectName.split(".");
       var group = parts[0], id = parts[1];
-      var obj = context.getObject(group, id);
-      return obj ? obj.index : null;
+      return context.getObject(group, id) || null;
     } catch (e) { return null; }
   }
 
   function objectExists(objectName) {
-    return getObjectIndex(objectName) !== null;
+    return getObject(objectName) !== null;
   }
 
   function guessEntranceTypeForTheme(themeId) {
