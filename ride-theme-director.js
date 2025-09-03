@@ -1,9 +1,9 @@
 /**
  * Ride Theme Director
- * v0.3
+ * v0.4
  * Author: Steven
  * Licence: MIT
- * Target API: 80+
+ * Target API: 116+
  *
  * Features
  * - Pick a ride, pick a theme, apply only the parts you want
@@ -17,10 +17,10 @@
 
   var META = {
     name: "Ride Theme Director",
-    version: "0.3",
+    version: "0.4",
     authors: ["Steven"],
     type: "local",
-    targetApiVersion: 80
+    targetApiVersion: 116
   };
 
   var THEMES = [
@@ -211,7 +211,11 @@
   function applyToRide() {
     var ride = getRideById(settings.selectedRideId);
     if (!ride) {
-      ui.showError("No ride selected", "Choose a ride first.");
+      if (ui.showMessageBox) {
+        ui.showMessageBox({ type: "error", title: "No ride selected", message: "Choose a ride first.", buttons: ["OK"] });
+      } else {
+        ui.showError("No ride selected", "Choose a ride first.");
+      }
       return;
     }
     var theme = THEMES[settings.themeIndex];
@@ -232,7 +236,11 @@
       try { placeSceneryAroundRide(ride, theme); } catch (e) { }
     }
 
-    ui.showQuery("Done", "Applied " + theme.label + " to " + ride.name + ".", ["OK"]);
+    if (ui.showMessageBox) {
+      ui.showMessageBox({ title: "Done", message: "Applied " + theme.label + " to " + ride.name + ".", buttons: ["OK"] });
+    } else {
+      ui.showQuery("Done", "Applied " + theme.label + " to " + ride.name + ".", ["OK"]);
+    }
   }
 
   function placeSceneryAroundRide(ride, theme) {
@@ -262,7 +270,7 @@
         var z = surfaceZ(x, y);
         var rotation = settings.sceneryRotateRandomly ? randomInt(0, 3) : 0;
         try {
-          map.placeObject(obj, x, y, z, { rotation: rotation });
+          placeObject(obj, x, y, z, { rotation: rotation });
           placed++;
         } catch (e) { }
       });
@@ -341,15 +349,16 @@
       try {
         var obj = pick(accents);
         var z = surfaceZ(neighbour.x, neighbour.y);
-        map.placeObject(obj, neighbour.x, neighbour.y, z);
+        placeObject(obj, neighbour.x, neighbour.y, z);
       } catch (e) { }
     }
   }
 
   function getRideList() {
     var list = [];
-    for (var i = 0; i < map.rides.length; i++) {
-      var r = map.rides[i];
+    var rides = (park && park.rides) ? park.rides : (map && map.rides) ? map.rides : [];
+    for (var i = 0; i < rides.length; i++) {
+      var r = rides[i];
       try {
         if (r.classification !== undefined) {
           var c = r.classification;
@@ -366,7 +375,13 @@
 
   function getRideById(id) {
     if (id === null) return null;
-    try { return map.rides[id] || null; } catch (e) { return null; }
+    try {
+      if (park && typeof park.getRide === "function") {
+        return park.getRide(id) || null;
+      }
+      var rides = (park && park.rides) ? park.rides : (map && map.rides) ? map.rides : [];
+      return rides[id] || null;
+    } catch (e) { return null; }
   }
 
   function findRideEndpoints(rideId) {
@@ -472,15 +487,35 @@
 
   function getObject(objectName) {
     try {
-      if (!context.getObject) return null;
       var parts = objectName.split(".");
       var group = parts[0], id = parts[1];
-      return context.getObject(group, id) || null;
-    } catch (e) { return null; }
+      if (typeof objectManager !== "undefined" && objectManager.getObject) {
+        return objectManager.getObject(group, id) || null;
+      }
+      if (context && context.getObject) {
+        return context.getObject(group, id) || null;
+      }
+    } catch (e) { }
+    return null;
   }
 
   function objectExists(objectName) {
     return getObject(objectName) !== null;
+  }
+
+  function placeObject(obj, x, y, z, options) {
+    try {
+      if (map && typeof map.placeObject === "function") {
+        map.placeObject(obj, x, y, z, options);
+      } else if (typeof scenery !== "undefined" && typeof scenery.place === "function") {
+        scenery.place(obj, x, y, z, options || {});
+      } else {
+        var tile = map.getTile(x, y);
+        if (tile && typeof tile.placeObject === "function") {
+          tile.placeObject(obj, z, options);
+        }
+      }
+    } catch (e) { }
   }
 
   function guessEntranceTypeForTheme(themeId) {
@@ -562,11 +597,18 @@
   function suggestName() {
     var theme = THEMES[settings.themeIndex];
     var name = pick(theme.names);
-    ui.showTextInput({
+    var opts = {
       title: "Suggested ride name",
       description: "Click OK to copy this name. You can paste it into the ride window if you prefer.",
       initialValue: name,
       callback: function () { }
-    });
+    };
+    if (ui.showTextInput) {
+      ui.showTextInput(opts);
+    } else if (ui.showTextPrompt) {
+      ui.showTextPrompt(opts);
+    } else if (ui.showInputBox) {
+      ui.showInputBox(opts);
+    }
   }
 })();

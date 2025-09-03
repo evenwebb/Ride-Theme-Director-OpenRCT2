@@ -1,4 +1,4 @@
-# Ride Theme Director (v0.3)
+# Ride Theme Director (v0.4)
 
 Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you want, and Ride Theme Director will rename the ride, set matching music, recolour track/supports/trains, and (optionally) place tasteful scenery around the station and approaches. There’s also a light-touch entrance/exit “accent” pass that works even on builds where direct entrance styling isn’t exposed.
 
@@ -71,7 +71,7 @@ You can also press **Suggest on-theme name** to copy a fresh name suggestion.
 
 ---
 
-## 🎨 Themes Included (v0.3)
+## 🎨 Themes Included (v0.4)
 
 - **Pirate Cove**
   *Blackfin’s Revenge*, weathered timbers, pirate music, barrels, torches, palms
@@ -110,7 +110,7 @@ You can also press **Suggest on-theme name** to copy a fresh name suggestion.
 
 ## ⚙️ Compatibility & Safety
 
-- **Target API:** 80+
+- **Target API:** 116+
 - **Feature detection**: Works across builds, falls back gracefully
 - **Non-destructive**: Only applies when you click **Apply**
 - **Undo support**: Uses grouped actions if supported by your build
