@@ -17,6 +17,7 @@ Give any ride a cohesive identity in seconds. Pick a theme, tick the parts you w
 - **Safe by design** — feature-detects capabilities; falls back gracefully if your OpenRCT2 build lacks certain setters.
 - **Optimised placement** — avoids paths and steep slopes by default, with a hard cap to prevent clutter.
 - **Ride picker** ignores shops, toilets, kiosks and other facilities that can't be themed.
+- **Debug log window** for tracking actions and troubleshooting.
 
 ---
 
@@ -68,6 +69,7 @@ You can also press **Suggest on-theme name** to copy a fresh name suggestion.
   - **Avoid paths**: prevent blocking guests
   - **Avoid steep tiles**
   - **Rotate randomly**
+- **Debug Log**: Opens a window showing recent actions for troubleshooting
 
 ---
 
