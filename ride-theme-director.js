@@ -134,6 +134,36 @@
     sceneryRotateRandomly: true
   };
 
+  var debugLogs = [];
+  var debugWindow = null;
+
+  function logDebug(msg) {
+    debugLogs.push(msg);
+    if (console && console.log) console.log("[Ride Theme Director]", msg);
+    if (debugWindow) {
+      var list = debugWindow.findWidget("logList");
+      if (list) list.items = debugLogs.slice(-200);
+    }
+  }
+
+  function openDebugWindow() {
+    if (debugWindow) {
+      debugWindow.bringToFront();
+      return;
+    }
+    debugWindow = ui.openWindow({
+      classification: "ride-theme-director-debug",
+      title: "Ride Theme Director Log",
+      width: 400,
+      height: 200,
+      colours: [24, 24],
+      widgets: [
+        { type: "listview", name: "logList", x: 10, y: 20, width: 380, height: 170, items: debugLogs }
+      ],
+      onClose: function () { debugWindow = null; }
+    });
+  }
+
   registerPlugin({
     name: META.name,
     version: META.version,
@@ -195,7 +225,8 @@
           "Tick only the parts you want. Scenery uses objects already in your park."
         ].join("\\n")),
 
-        button("closeBtn", 10, 272, 360, 16, "Close", function () { var win = ui.getWindow("ride-theme-director"); if (win) win.close(); })
+        button("debugBtn", 10, 272, 170, 16, "Debug Log", openDebugWindow),
+        button("closeBtn", 200, 272, 170, 16, "Close", function () { var win = ui.getWindow("ride-theme-director"); if (win) win.close(); })
       ],
       onClose: function () { }
     });
@@ -216,26 +247,28 @@
       } else {
         ui.showError("No ride selected", "Choose a ride first.");
       }
+      logDebug("Apply failed: no ride selected.");
       return;
     }
     var theme = THEMES[settings.themeIndex];
+    logDebug("Applying theme '" + theme.label + "' to ride '" + ride.name + "'.");
 
     if (settings.applyName) {
-      try { safeSetRideName(ride, pick(theme.names)); } catch (e) { }
+      try { safeSetRideName(ride, pick(theme.names)); logDebug("Renamed ride."); } catch (e) { logDebug("Rename failed: " + e); }
     }
     if (settings.applyColours) {
-      try { safeSetRideColours(ride, theme.colours); } catch (e) { }
+      try { safeSetRideColours(ride, theme.colours); logDebug("Recoloured ride."); } catch (e) { logDebug("Recolour failed: " + e); }
     }
     if (settings.applyMusic && theme.musicStyle !== undefined) {
-      try { safeSetRideMusic(ride, theme.musicStyle); } catch (e) { }
+      try { safeSetRideMusic(ride, theme.musicStyle); logDebug("Music set."); } catch (e) { logDebug("Music failed: " + e); }
     }
     if (settings.applyEntranceExit) {
-      try { themeEntranceAndExit(ride, theme); } catch (e) { }
+      try { themeEntranceAndExit(ride, theme); logDebug("Styled entrance/exit."); } catch (e) { logDebug("Entrance/exit failed: " + e); }
     }
     if (settings.applyScenery) {
-      try { placeSceneryAroundRide(ride, theme); } catch (e) { }
+      try { placeSceneryAroundRide(ride, theme); logDebug("Placed scenery."); } catch (e) { logDebug("Scenery placement failed: " + e); }
     }
-
+    logDebug("Done applying theme.");
     if (ui.showMessageBox) {
       ui.showMessageBox({ title: "Done", message: "Applied " + theme.label + " to " + ride.name + ".", buttons: ["OK"] });
     } else {
@@ -244,14 +277,15 @@
   }
 
   function placeSceneryAroundRide(ride, theme) {
-    if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) return;
+    logDebug("Placing scenery around " + ride.name + ".");
+    if (!theme.sceneryObjectIds || !theme.sceneryObjectIds.length) { logDebug("No scenery defined for theme."); return; }
     var available = theme.sceneryObjectIds.map(getObject).filter(function (obj) { return obj !== null; });
-    if (!available.length) return;
+    if (!available.length) { logDebug("No scenery objects available in park."); return; }
 
     var stations = findStationTiles(ride.id);
     var entries = findRideEndpoints(ride.id);
     var seeds = stations.concat(entries);
-    if (!seeds.length) return;
+    if (!seeds.length) { logDebug("No station or entry tiles found."); return; }
 
     var placed = 0;
     var tried = Object.create(null);
@@ -276,6 +310,7 @@
       });
       if (placed >= settings.sceneryMax) break;
     }
+    logDebug("Placed " + placed + " scenery objects.");
   }
 
   function isTileGoodForScenery(x, y) {
@@ -313,8 +348,9 @@
   }
 
   function themeEntranceAndExit(ride, theme) {
+    logDebug("Styling entrances/exits for " + ride.name + ".");
     var endpoints = findRideEndpoints(ride.id);
-    if (!endpoints.length) return;
+    if (!endpoints.length) { logDebug("No entrance/exit tiles found."); return; }
 
     var restyled = false;
     for (var i = 0; i < endpoints.length; i++) {
@@ -338,10 +374,10 @@
         }
       } catch (e) { }
     }
-    if (restyled) return;
+    if (restyled) { logDebug("Updated entrance/exit objects."); return; }
 
     var accents = (theme.accentObjectIds || []).map(getObject).filter(function (obj) { return obj !== null; });
-    if (!accents.length) return;
+    if (!accents.length) { logDebug("No accent objects available."); return; }
 
     for (var a = 0; a < endpoints.length; a++) {
       var neighbour = getNeighbourTile(endpoints[a]);
@@ -352,6 +388,7 @@
         placeObject(obj, neighbour.x, neighbour.y, z);
       } catch (e) { }
     }
+    logDebug("Placed entrance/exit accents.");
   }
 
   function getRideList() {
